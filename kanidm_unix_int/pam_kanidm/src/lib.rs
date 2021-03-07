@@ -19,8 +19,10 @@ use crate::pam::module::{PamHandle, PamHooks};
 use std::collections::BTreeSet;
 use std::convert::TryFrom;
 use std::ffi::CStr;
+use std::future::Future;
 // use std::os::raw::c_char;
-use async_std::task;
+// use async_std::task;
+use tokio::runtime;
 use kanidm_unix_common::client::call_daemon;
 use kanidm_unix_common::unix_config::KanidmUnixdConfig;
 use kanidm_unix_common::unix_proto::{ClientRequest, ClientResponse};
@@ -30,6 +32,12 @@ struct Options {
     debug: bool,
     use_first_pass: bool,
     ignore_unknown_user: bool,
+}
+
+fn block_on<F, T>(future: F) -> T
+where F: Future<Output = T> {
+    let rt = runtime::Builder::new_current_thread().enable_all().build().unwrap();
+    rt.block_on(future)
 }
 
 impl TryFrom<&Vec<&CStr>> for Options {
@@ -92,7 +100,7 @@ impl PamHooks for PamKanidm {
         let req = ClientRequest::PamAccountAllowed(account_id);
         // PamResultCode::PAM_IGNORE
 
-        match task::block_on(call_daemon(cfg.sock_path.as_str(), req)) {
+        match block_on(call_daemon(cfg.sock_path.as_str(), req)) {
             Ok(r) => match r {
                 ClientResponse::PamStatus(Some(true)) => {
                     // println!("PAM_SUCCESS");
@@ -201,7 +209,7 @@ impl PamHooks for PamKanidm {
         };
         let req = ClientRequest::PamAuthenticate(account_id, authtok);
 
-        match task::block_on(call_daemon(cfg.sock_path.as_str(), req)) {
+        match block_on(call_daemon(cfg.sock_path.as_str(), req)) {
             Ok(r) => match r {
                 ClientResponse::PamStatus(Some(true)) => {
                     // println!("PAM_SUCCESS");

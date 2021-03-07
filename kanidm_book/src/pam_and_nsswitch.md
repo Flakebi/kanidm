@@ -224,4 +224,3 @@ possible. For example, you may have your laptop in a park without wifi.
 Clearing the cache however, completely wipes all local data about all accounts and groups.
 If you are relying on this cached (but invalid data) you may lose access to your accounts until
 other communication issues have been resolved.
-
